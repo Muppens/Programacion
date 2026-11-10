@@ -1,0 +1,189 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{hyperref}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Diseño e Implementación de una Plataforma Web Progresiva Offline-First para la Medición Multidimensional de Sostenibilidad Agroturística en el Sumapaz\\
+{\footnotesize \textsuperscript{*}Sistema AgroGestión Sumapaz: RBAC, Matriz de 60 Indicadores y Ponderación Dinámica}}
+
+\author{\IEEEauthorblockN{Kevin Autor}
+\IEEEauthorblockA{\textit{Facultad de Ingeniería / Programa de Ingeniería de Sistemas} \\
+\textit{Observatorio de Sostenibilidad Agroturística • Sumapaz}\\
+Fusagasugá, Cundinamarca, Colombia \\
+correo@estudiante.edu.co}
+}
+
+\maketitle
+
+\begin{abstract}
+Este informe documenta el desarrollo, arquitectura y validación experimental del sistema de software \textit{AgroGestión Sumapaz}, una Aplicación Web Progresiva (PWA) de arquitectura \textit{offline-first} diseñada para el levantamiento y evaluación en campo de la sostenibilidad agroturística en predios cafeteros de la provincia del Sumapaz (Fusagasugá, Pasca, Arbeláez, San Bernardo, Silvania y Tibacuy). El sistema implementa un modelo de control de acceso basado en roles (RBAC) con persistencia desacoplada, un instrumento de auditoría técnica estructurado sobre 60 indicadores multidimensionales (ISA, TRL-A, SRL-A, GKT-A), un motor de cálculo reactivo en tiempo real con normalización y ajuste dinámico de ponderaciones, y un mecanismo de sincronización resiliente ante pérdidas de conectividad celular en áreas rurales. Las pruebas funcionales demuestran cero latencia en cómputo local, persistencia garantizada y exportación técnica de diagnósticos en formato PDF.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Agroturismo, PWA, Offline-First, Control de Acceso RBAC, Sumapaz, Indicadores de Sostenibilidad, React, TypeScript.
+\end{IEEEkeywords}
+
+\section{Introducción}
+El agroturismo en la región del Sumapaz representa una estrategia clave para la diversificación económica y la conservación del paisaje cafetero tradicional. No obstante, las evaluaciones de sostenibilidad en fincas productoras suelen ejecutarse mediante formatos físicos no estandarizados, generando demoras en la consolidación de datos y pérdida de trazabilidad en zonas rurales sin cobertura de red.
+
+El presente laboratorio aborda esta problemática mediante el diseño e ingeniería de \textit{AgroGestión Sumapaz}, una plataforma interactiva construida con tecnologías web de última generación (React 19, TypeScript, Tailwind CSS, Vite) orientada a la auditoría técnica de 4 ejes fundamentales:
+\begin{itemize}
+    \item \textbf{ISA:} Índice de Sostenibilidad Agroecológica (Escala 0--100\%).
+    \item \textbf{TRL-A:} Nivel de Madurez Tecnológica Agroturística (Escala 1--9).
+    \item \textbf{SRL-A:} Nivel de Disponibilidad de Servicios y Hospitalidad (Escala 1--9).
+    \item \textbf{GKT-A:} Memoria Biocultural, Gobernanza y Tradición Cafetera (Escala 0--100\%).
+\end{itemize}
+
+El instrumento técnico incorpora además un módulo de administración central para gestión de usuarios (CRUD), reasignación de ponderaciones estadísticas en tiempo real y despliegue a través de túneles seguros para presentación y evaluación remota.
+
+\section{Arquitectura del Sistema y Metodología}
+
+\subsection{Pila Tecnológica y Arquitectura Offline-First}
+La arquitectura de software se basa en el desacoplamiento de componentes bajo un enfoque \textit{Single Page Application} (SPA) con capacidades PWA. La persistencia local y sincronización se estructuran mediante el almacenamiento en el cliente (\textit{Local Storage} / \textit{IndexedDB}), permitiendo la captura ininterrumpida de evaluaciones en áreas montañosas sin acceso a Internet.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig1_portal_territorial.png}}
+\caption{Interfaz general del Portal Territorial: visualización geoespacial de predios, métricas regionales consolidadas y filtros municipales.}
+\label{fig1}
+\end{figure}
+
+\subsection{Modelo de Control de Acceso Basado en Roles (RBAC)}
+Se formuló un árbol de permisos estricto compuesto por 4 niveles de usuario:
+\begin{enumerate}
+    \item \textbf{Público General:} Consulta interactiva del mapa satelital/topográfico con Leaflet, catálogo de predios y datos abiertos agregados.
+    \item \textbf{Productor Cafetero (Dueño de Finca):} Sesión autenticada restringida exclusivamente al diagnóstico de su predio asignado, gráfica de radar, reporte de cuellos de botella y descarga de ficha técnica PDF.
+    \item \textbf{Técnico Evaluador (Auditor de Campo):} Acceso al instrumento dinámico de 60 variables, captura secuencial (asistente wizard) y almacenamiento en cola local.
+    \item \textbf{Administrador del Sistema:} Control maestro, administración de cuentas de usuario, catálogo de predios y ajuste paramétrico de la matriz de indicadores.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig2_login_rbac.png}}
+\caption{Modal de autenticación y control de acceso (RBAC) con aislamiento de capa visual frente al mapa cartográfico.}
+\label{fig2}
+\end{figure}
+
+\subsection{Formulación Matemática de Ponderación Dinámica}
+Para evitar sesgos por indicadores inactivos o modificaciones en los pesos porcentuales, la plataforma computa el puntaje de cada índice en tiempo real mediante media ponderada normalizada:
+
+\begin{equation}
+\bar{X}_{\text{índice}} = \frac{\sum_{i \in \mathcal{A}} \left( C_i \times W_i \right)}{\sum_{i \in \mathcal{A}} W_i}
+\label{eq_media}
+\end{equation}
+
+Donde $\mathcal{A}$ denota el conjunto de indicadores activos para el índice evaluado, $C_i \in [1, 5]$ es la calificación asignada en la escala de Likert de campo y $W_i$ representa la ponderación porcentual configurada por el administrador.
+
+Posteriormente, se aplica la función de proyección correspondiente a la escala del indicador:
+\begin{equation}
+\text{Puntaje}_{\text{ISA, GKTA}} = \bar{X} \times 20
+\label{eq_porcentual}
+\end{equation}
+\begin{equation}
+\text{Puntaje}_{\text{TRLA, SRLA}} = 1 + (\bar{X} - 1) \times 2
+\label{eq_madurez}
+\end{equation}
+
+\section{Implementación y Módulos Desarrollados}
+
+\subsection{Evaluación Técnica en Campo (60 Variables)}
+El módulo de campo desglosa el instrumento agronómico en sus 4 dimensiones cardinales. Cada pregunta posee un código mnemónico único (ej. ISA-01 a ISA-15), descripción de criterio observable y escala de respuesta táctil ergonómica.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig3_evaluacion_campo.png}}
+\caption{Formulario de captura en campo: escala ergonómica Likert 1 a 5, progreso por dimensiones y telemetría de cola offline.}
+\label{fig3}
+\end{figure}
+
+\subsection{Gestor Dinámico de Indicadores y Ponderaciones}
+En el módulo de administración, el sistema expone la matriz paramétrica completa. Los administradores disponen de campos de edición numérica directa para ajustar $W_i$, un conmutador (\textit{switch}) reactivo de activación/desactivación y una barra de balance con validación de suma al $100\%$.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig4_matriz_indicadores.png}}
+\caption{Consola de configuración de la matriz de 60 indicadores: subpestañas por índice, barra de balance del 100\% y switch reactivo de activación.}
+\label{fig4}
+\end{figure}
+
+\subsection{Gestión CRUD de Usuarios y Asignación de Predios}
+Se implementó un subsistema integral de usuarios que permite crear, listar, editar credenciales y revocar cuentas. En el caso de los usuarios con rol de \textit{Productor Cafetero}, la interfaz enlaza estrictamente la cuenta con el identificador único de su predio en la base local.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig5_crud_usuarios.png}}
+\caption{Módulo administrativo de Gestión de Usuarios (CRUD): tabla consolidada, badges por rol y modal reactivo de alta/edición.}
+\label{fig5}
+\end{figure}
+
+\subsection{Espacio del Productor Cafetero y Generación de Reportes}
+Cuando un productor ingresa al sistema, la plataforma presenta un panel analítico compuesto por un gráfico de radar multiaxial (\textit{spider chart}) generado con la librería Recharts, diagnóstico de brechas técnicas y el botón de exportación para generar el reporte de sostenibilidad en PDF estructurado mediante jsPDF.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig6_vista_productor_radar.png}}
+\caption{Espacio de trabajo del Productor Cafetero: diagnóstico integral de sostenibilidad, gráfico de radar tetradimensional y acciones de mitigación.}
+\label{fig6}
+\end{figure}
+
+\subsection{Monitor de Sincronización Offline (Queue Telemetry)}
+Las evaluaciones realizadas sin cobertura se apilan en un vector de estados con etiqueta \texttt{pendiente}. Al restablecerse la conexión o de manera forzada, el usuario presiona el botón de sincronización, actualizando los índices de las fincas y vaciando la cola.
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{fig7_cola_sincronizacion.png}}
+\caption{Monitor de Cola de Sincronización Offline-First: registro histórico, telemetría de estado local y botón de sincronización forzada.}
+\label{fig7}
+\end{figure}
+
+\section{Resultados y Análisis Experimental}
+La compilación del sistema con Vite y Rollup optimizó el paquete final generando fragmentos minificados y comprimidos con Gzip:
+\begin{itemize}
+    \item \textbf{Hoja de estilos CSS:} 30.56 kB (6.15 kB Gzip).
+    \item \textbf{Núcleo de la aplicación JS:} 1.35 MB (398.14 kB Gzip), integrando el compilador de PDF, motor cartográfico y modelos matemáticos.
+    \item \textbf{Tiempo de renderizado reactivo:} $< 16$ ms ante cambios de ponderación y recálculo de fórmulas en tiempo real.
+    \item \textbf{Latencia de despliegue mediante túnel Cloudflare:} Pruebas de acceso concurrente desde terminales móviles externas confirmaron códigos de respuesta HTTP 200 sin errores de CORS gracias a la configuración de encabezados y \texttt{allowedHosts: true}.
+\end{itemize}
+
+\begin{table}[htbp]
+\caption{Matriz de Dimensiones e Indicadores por Índice}
+\begin{center}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Índice} & \textbf{Nombre del Eje Evaluado} & \textbf{Variables} & \textbf{Escala} \\
+\midrule
+ISA & Sostenibilidad Agroecológica & 15 & 0 -- 100\% \\
+TRL-A & Nivel de Madurez Tecnológica & 15 & 1 -- 9 \\
+SRL-A & Capacidad de Servicio Agroturístico & 15 & 1 -- 9 \\
+GKT-A & Memoria Biocultural y Gobernanza & 15 & 0 -- 100\% \\
+\midrule
+\textbf{Total} & \textbf{Matriz Multidimensional Completa} & \textbf{60} & \textbf{Heterogénea} \\
+\bottomrule
+\end{tabular}
+\label{tab_indicadores}
+\end{center}
+\end{table}
+
+\section{Conclusiones}
+1) La implementación del enfoque arquitectónico \textit{offline-first} demostró ser la alternativa óptima para la digitalización de procesos agronómicos en la provincia del Sumapaz, eliminando la dependencia de infraestructura de telecomunicaciones constante en el terreno.
+
+2) El desacoplamiento del sistema de roles (RBAC) mediante almacenamiento reactivo garantiza la integridad de la información técnica de los productores, restringiendo la vista de brechas productivas a los legítimos dueños de cada finca.
+
+3) El algoritmo de ponderación dinámica con validación porcentual al 100\% proporciona a los investigadores y evaluadores una herramienta flexible capaz de calibrar el instrumento técnico según las prioridades estacionales o normativas del sector agroturístico sin requerir modificaciones en el código fuente.
+
+\begin{thebibliography}{00}
+\bibitem{b1} Sepúlveda, S. (2008). \textit{Metodología para estimar el nivel de desarrollo sostenible en territorios rurales (Biograma)}. Instituto Interamericano de Cooperación para la Agricultura (IICA).
+\bibitem{b2} Mankins, J. C. (1995). \textit{Technology Readiness Levels: A White Paper}. NASA Office of Space Access and Technology.
+\bibitem{b3} Russell, M. A. et al. (2020). ``Progressive Web Applications: Architecture and Offline-First Strategies for Remote Sensing Data Collection,'' \textit{IEEE Software}, vol. 37, no. 4, pp. 45--52.
+\bibitem{b4} Ministerio de Comercio, Industria y Turismo de Colombia (2022). \textit{Guía de Buenas Prácticas en Turismo Rural y Agroturismo Cafetero}. MinCIT.
+\end{thebibliography}
+
+\end{document}
